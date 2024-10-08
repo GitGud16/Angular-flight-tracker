@@ -1,0 +1,14 @@
+<nav>
+  <div class="container-fluid navbar-expand-lg navbar-light bg-light">
+    <a class="navbar-brand" href="#">Flight Tracker</a>
+    <div class="navbar-nav">
+      <a class="nav-link" routerLink="/map" routerLinkActive="active">Map</a>
+      <a class="nav-link" routerLink="/list" routerLinkActive="active"></a>
+    </div>
+  </div>
+</nav>
+
+<div class="container mt-3">
+  <app-search-bar></app-search-bar>
+  <router-outlet></router-outlet>
+</div>

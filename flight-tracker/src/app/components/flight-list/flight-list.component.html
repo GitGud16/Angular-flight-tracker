@@ -1,0 +1,25 @@
+<h2>Flight List</h2>
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Callsign</th>
+                <th>Origin</th>
+                <th>Altitude</th>
+                <th>Speed</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr *ngFor="let flight of flights">
+                <td>{{ flight.callsign}}</td>
+                <td>{{flight.origin}}</td>
+                <td>{{flight.altitude}}</td>
+                <td>{{flight.speed | number:'1.0-0'}}m/s</td>
+                <td>
+                    <a [routerLink]="['/details', flight.id]"  class="btn btn-primary btn-sm">Details</a>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
