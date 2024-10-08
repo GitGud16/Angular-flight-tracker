@@ -1,114 +1,129 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { forkJoin, Observable, of } from 'rxjs';
-import { catchError, map, tap } from 'rxjs/operators';
+import { Observable, of } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 import { CacheService } from './cache.service';
+import { isPlatformBrowser } from '@angular/common';
 
-export interface Flight{
-  id:string;
-  callsign:string;
-  origin:string;
-  destination:string;
-  latitude:number;
-  longitude:number;
-  altitude:number;
-  true_track:number;
-  speed:number;
+export interface Flight {
+  id: string;
+  callsign: string;
+  origin: string;
+  destination: string;
+  latitude: number;
+  longitude: number;
+  altitude: number;
+  velocity: number;
+  true_track: number;
+  vertical_rate: number;
+  on_ground: boolean;
+  sensors?: number[];
+  baro_altitude: number;
+  squawk?: string;
+  spi: boolean;
+  position_source: number;
+  category?: number;
+  last_contact: number;
+  time_position?: number;
 }
 
-export type AviationStackResponse=Omit<
-Flight,
-'speed' & 'true_track'&'altitude'&'latitude'&'longitude'
->[]
 @Injectable({
   providedIn: 'root'
 })
 export class FlightService {
-  private openSkyUrl = `https://opensky-network.org/api/states/all`
-  private aviationStackUrl='http://api.aviationstack.com/v1/flights'
-  private aviationStackKey='28d05c126fba4c9e0132f675972a408a'
-
+  private openSkyUrl = `https://opensky-network.org/api/states/all`;
+  // private aviationStackUrl = 'http://api.aviationstack.com/v1/flights';
+  // private aviationStackKey = '28d05c126fba4c9e0132f675972a408a';
 
   constructor(
     private http: HttpClient,
-    private cacheService: CacheService
+    private cacheService: CacheService,
+    @Inject(PLATFORM_ID) private platformId: Object
   ) { }
 
-  getFlights(): Observable<Flight[]>{
-    const cachedFlights = this.cacheService.get<Flight[]>('flights')
-    if(cachedFlights){
-      return of(cachedFlights)
+  getFlights(): Observable<Flight[]> {
+    if (isPlatformBrowser(this.platformId)) {
+      const cachedFlights = this.cacheService.get<Flight[]>('flights');
+      if (cachedFlights) {
+        return of(cachedFlights);
+      }
     }
 
-     const flights = forkJoin({
-      realTime: this.http.get(this.openSkyUrl),
-      scheduled: this.http.get(`${this.aviationStackUrl}?access_key=${this.aviationStackKey}`)
-    }).pipe(
-      map(({realTime, scheduled})=>this.combineFlightData(realTime, scheduled)),
-      tap(flights=>this.cacheService.set('flights',flights,288)),
-      catchError(this.handleError<Flight[]>('getFlights',[]))
-    )
-    console.log("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",flights)
-    return flights
-    // return this.http.get(this.openSkyUrl).pipe(
-    //   map((response: any)=>{
-    //     return response.states.map((state: any)=>{
-    //       console.log("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",state)
-          
-    //       return{
-    //       id:state[0],
-    //       callsign:state[1]?.trim() || 'N/A',
-    //       origin: state[2] || 'N/A',
-    //       destination:'N/A',
-    //       latitude: state[6],
-    //       longitude: state[5],
-    //       altitude: state[7],
-    //       trueTrack:state[10],
-    //       speed: state[9]
-    //     }})
-    //   }),
-    //   catchError(this.handleError<Flight[]>('getFlights',[]))
-    // )
+    return this.http.get(this.openSkyUrl).pipe(
+      map((response: any) => {
+        const flights = response.states.map((state: any) => ({
+          id: state[0],
+          callsign: state[1]?.trim() || 'N/A',
+          origin: state[2] || 'N/A',
+          destination: 'N/A', // We don't have destination data from OpenSky
+          time_position: state[3],
+          last_contact: state[4],
+          longitude: state[5],
+          latitude: state[6],
+          baro_altitude: state[7],
+          on_ground: state[8],
+          velocity: state[9],
+          true_track: state[10],
+          vertical_rate: state[11],
+          sensors: state[12],
+          altitude: state[13], // This is the geometric altitude
+          squawk: state[14],
+          spi: state[15],
+          position_source: state[16],
+          category: state[17]
+        }));
+        this.cacheService.set('flights', flights, 5); // Cache for 5 minutes
+        return flights;
+      }),
+      catchError(this.handleError<Flight[]>('getFlights', []))
+    );
   }
 
-  private combineFlightData(realTimeData: any, scheduledData: any): Flight[] {
-    const realTimeFlights:Omit<Flight,'destination'&'origin'>[] = realTimeData.states.map((state: any) => ({
-      id: state[0],
-      callsign: state[1]?.trim() || 'N/A',
-      latitude: state[6],
-      longitude: state[5],
-      altitude: state[7],
-      true_track:state[10],
-      speed: state[9]
-    }));
-
-    const scheduledFlights: AviationStackResponse = scheduledData.data.map((flight: any) => ({
-      id: flight.flight.iata,
-      callsign: flight.flight.iata,
-      origin: flight.departure.airport,
-      destination: flight.arrival.airport
-    }));
-
-    // Combine the data based on callsign
-    return realTimeFlights.map(rtFlight => {
-      const scheduledFlight = scheduledFlights.find(sf => sf.callsign === rtFlight.callsign);
-      return {
-        ...rtFlight,
-        origin: scheduledFlight?.origin || 'Unknown',
-        destination: scheduledFlight?.destination || 'Unknown'
-      };
-    });
-  }
-
-  getFlight(id:string):Observable<Flight | undefined>{
+  getFlight(id: string): Observable<Flight | undefined> {
     return this.getFlights().pipe(
-      map(flights=>flights.find(flight=>flight.id===id))
-    )
+      map(flights => flights.find(flight => flight.id === id))
+    );
   }
-  private handleError<T>(operation='operation', result?:T){
-    return(error:any): Observable<T>=>{
+
+  private handleError<T>(operation = 'operation', result?: T) {
+    return (error: any): Observable<T> => {
       console.error(`${operation} failed: ${error.message}`);
-      return of(result as T);
-    }
+      return new Observable(observer => {
+        observer.next(result as T);
+        observer.complete();
+      });
+    };
   }
 }
+
+// Commented out code for AviationStack API integration:
+/*
+private combineFlightData(realTimeData: any, scheduledData: any): Flight[] {
+  const realTimeFlights: Omit<Flight, 'destination' & 'origin'>[] = realTimeData.states.map((state: any) => ({
+    id: state[0],
+    callsign: state[1]?.trim() || 'N/A',
+    origin: state[2],
+    latitude: state[6],
+    longitude: state[5],
+    altitude: state[7],
+    true_track: state[10],
+    speed: state[9]
+  }));
+
+  const scheduledFlights: AviationStackResponse = scheduledData.data.map((flight: any) => ({
+    id: flight.flight.iata,
+    callsign: flight.flight.iata,
+    destination: flight.arrival.airport,
+    origin: flight.departure.airport,
+  }));
+
+  return realTimeFlights.map(rtFlight => {
+    const scheduledFlight = scheduledFlights.find(sf => sf.callsign === rtFlight.callsign);
+    return {
+      ...rtFlight,
+      origin: scheduledFlight?.origin || 'Unknown',
+      destination: scheduledFlight?.destination || 'Unknown'
+    };
+  });
+}
+*/

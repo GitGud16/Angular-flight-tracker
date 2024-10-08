@@ -1,4 +1,12 @@
 <h2>Flight List</h2>
+
+<div class="form-group mb-3">
+  <label for="regionSelect">Filter by Region:</label>
+  <select id="regionSelect" class="form-control" [(ngModel)]="selectedRegion" (change)="onRegionChange()">
+    <option *ngFor="let region of regions" [value]="region">{{region}}</option>
+  </select>
+</div>
+
 <div class="table-responsive">
     <table class="table table-striped">
         <thead>
@@ -11,13 +19,13 @@
             </tr>
         </thead>
         <tbody>
-            <tr *ngFor="let flight of flights">
-                <td>{{ flight.callsign}}</td>
-                <td>{{flight.origin}}</td>
-                <td>{{flight.altitude}}</td>
-                <td>{{flight.speed | number:'1.0-0'}}m/s</td>
+            <tr *ngFor="let flight of filteredFlights">
+                <td>{{ flight.callsign }}</td>
+                <td title="{{ flight.origin }}">{{ flight.origin | slice:0:15 }}{{ flight.origin.length > 15 ? '...' : '' }}</td>
+                <td>{{ flight.altitude | number:'1.0-0' }} m</td>
+                <td>{{ flight.velocity | number:'1.0-0' }} m/s</td>
                 <td>
-                    <a [routerLink]="['/details', flight.id]"  class="btn btn-primary btn-sm">Details</a>
+                    <a [routerLink]="['/details', flight.id]" class="btn btn-primary btn-sm">Details</a>
                 </td>
             </tr>
         </tbody>

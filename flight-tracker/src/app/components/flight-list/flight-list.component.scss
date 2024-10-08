@@ -1,0 +1,14 @@
+.table-responsive {
+  overflow-x: auto;
+}
+
+.table {
+  min-width: 600px; // Adjust this value as needed
+}
+
+td {
+  max-width: 150px; // Adjust this value as needed
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

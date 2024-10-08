@@ -1,15 +1,13 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { FlightMapComponent } from './components/flight-map/flight-map.component';
 import { FlightListComponent } from './components/flight-list/flight-list.component';
 import { FlightDetailsComponent } from './components/flight-details/flight-details.component';
-
-
+import { FlightMapComponent } from './components/flight-map/flight-map.component';
 const routes: Routes = [
-  {path:``, redirectTo:`/map`, pathMatch:`full`},
+  { path: '', redirectTo: '/flights', pathMatch: 'full' },
+  { path: 'flights', component: FlightListComponent },
   {path:`map`, component:FlightMapComponent},
-  {path:`list`, component:FlightListComponent},
-  {path:`details/:id`, component: FlightDetailsComponent},
+  { path: 'details/:id', component: FlightDetailsComponent },
 ];
 
 @NgModule({
