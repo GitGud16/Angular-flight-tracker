@@ -15,17 +15,28 @@
                 <th>Origin</th>
                 <th>Altitude</th>
                 <th>Speed</th>
+                <th>Latitude</th>
+                <th>Longitude</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody>
             <tr *ngFor="let flight of filteredFlights">
                 <td>{{ flight.callsign }}</td>
-                <td title="{{ flight.origin }}">{{ flight.origin | slice:0:15 }}{{ flight.origin.length > 15 ? '...' : '' }}</td>
+                <td title="{{ flight.origin }}">
+                    {{ flight.origin | slice:0:15 }}{{ flight.origin.length > 15 ? '...' : '' }}
+                </td>
                 <td>{{ flight.altitude | number:'1.0-0' }} m</td>
                 <td>{{ flight.velocity | number:'1.0-0' }} m/s</td>
+                <td>{{ flight.latitude | number:'1.6-6' }}°</td>
+                <td>{{ flight.longitude | number:'1.6-6' }}°</td>
                 <td>
-                    <a [routerLink]="['/details', flight.id]" class="btn btn-primary btn-sm">Details</a>
+                    <a [routerLink]="['/details', flight.id]" class="btn btn-primary btn-sm me-2">Details</a>
+                    <button class="btn btn-secondary btn-sm" (click)="onRevealClick(flight)">
+                     {{ (isFlightVisible$(flight.id) | async) ? 'Hide' : 'Reveal' }}
+
+                      
+                    </button>
                 </td>
             </tr>
         </tbody>

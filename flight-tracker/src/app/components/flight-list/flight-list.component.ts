@@ -1,5 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import { Flight, FlightService } from './../../services/flight.service';
+import { Store } from '@ngrx/store';
+import * as FlightActions from '../../store/flight/flight.actions';
+import * as FlightSelectors from '../../store/flight/flight.selector';
+import { Observable } from 'rxjs';
+
+
 
 @Component({
   selector: 'app-flight-list',
@@ -7,31 +13,44 @@ import { Flight, FlightService } from './../../services/flight.service';
   styleUrls: ['./flight-list.component.scss']
 })
 export class FlightListComponent implements OnInit {
-  allFlights: Flight[] = [];
+  // allFlights: Flight[] = [];
+  allFlights$: Observable<Flight[]>;
   filteredFlights: Flight[] = [];
-  regions: string[] = ['All', 'Europe', 'North America', 'South America', 'Asia', 'Africa', 'Oceania', 'Middle East'];
-  selectedRegion: string = 'Middle East';  // Changed this line to set default to Middle East
+  regions: string[] = ['All', 'Saudi Arabia', 'Europe', 'North America', 'South America', 'Asia', 'Africa', 'Oceania'];
+  selectedRegion: string = 'Saudi Arabia';  // Set default to Saudi Arabia
 
-  constructor(private flightService: FlightService) {}
+  constructor(
+    private flightService: FlightService,
+    public store: Store
+  ) {
+    this.allFlights$ = this.store.select(FlightSelectors.selectAllFlights);
+
+
+  }
 
   ngOnInit(): void {
-    this.getFlights();
+    this.store.dispatch(FlightActions.loadFlights());
+    this.allFlights$.subscribe(flights => {
+      
+      this.filterFlights(flights);
+    });
+
+    // this.getFlights();
   }
 
-  getFlights(): void {
-    this.flightService.getFlights()
-      .subscribe(flights => {
-        this.allFlights = flights;
-        this.filterFlights();
-        console.log(flights);
-      });
-  }
+  // getFlights(): void {
+  //   this.flightService.getFlights()
+  //     .subscribe(flights => {
+  //       this.allFlights = flights;
+  //       this.filterFlights();
+  //     });
+  // }
 
-  filterFlights(): void {
+  filterFlights(flights: Flight[]): void {
     if (this.selectedRegion === 'All') {
-      this.filteredFlights = this.allFlights;
+      this.filteredFlights = flights;
     } else {
-      this.filteredFlights = this.allFlights.filter(flight => this.isInRegion(flight, this.selectedRegion));
+      this.filteredFlights = flights.filter(flight => this.isInRegion(flight, this.selectedRegion));
     }
   }
 
@@ -40,6 +59,8 @@ export class FlightListComponent implements OnInit {
     const lon = flight.longitude;
 
     switch (region) {
+      case 'Saudi Arabia':
+        return lat > 16 && lat < 33 && lon > 34 && lon < 56;
       case 'Europe':
         return lat > 35 && lat < 70 && lon > -25 && lon < 40;
       case 'North America':
@@ -52,14 +73,22 @@ export class FlightListComponent implements OnInit {
         return lat > -40 && lat < 35 && lon > -20 && lon < 50;
       case 'Oceania':
         return lat > -50 && lat < 0 && lon > 110 && lon < 180;
-      case 'Middle East':
-        return lat > 12 && lat < 42 && lon > 25 && lon < 65;
       default:
         return false;
     }
   }
 
   onRegionChange(): void {
-    this.filterFlights();
+    this.allFlights$.subscribe(flights => this.filterFlights(flights));
   }
+
+  onRevealClick(flight: Flight): void {
+    this.store.dispatch(FlightActions.toggleFlightVisibility({ flight }));
+  }
+
+  isFlightVisible$(flightId: string): Observable<boolean> {
+    return this.store.select(FlightSelectors.selectIsFlightVisible(flightId));
+  }
+
+  
 }

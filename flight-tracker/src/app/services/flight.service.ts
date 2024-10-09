@@ -1,5 +1,5 @@
 import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { CacheService } from './cache.service';
@@ -32,6 +32,8 @@ export interface Flight {
 })
 export class FlightService {
   private openSkyUrl = `https://opensky-network.org/api/states/all`;
+  private username = 'Holygeek'
+  private pass = '1116826411a'
   // private aviationStackUrl = 'http://api.aviationstack.com/v1/flights';
   // private aviationStackKey = '28d05c126fba4c9e0132f675972a408a';
 
@@ -42,6 +44,10 @@ export class FlightService {
   ) { }
 
   getFlights(): Observable<Flight[]> {
+    const headers = new HttpHeaders({
+      'Authorization': 'Basic ' + btoa(this.username + ':' + this.pass)
+
+    })
     if (isPlatformBrowser(this.platformId)) {
       const cachedFlights = this.cacheService.get<Flight[]>('flights');
       if (cachedFlights) {
@@ -49,12 +55,12 @@ export class FlightService {
       }
     }
 
-    return this.http.get(this.openSkyUrl).pipe(
+    return this.http.get<any>(this.openSkyUrl, {headers}).pipe(
       map((response: any) => {
         const flights = response.states.map((state: any) => ({
           id: state[0],
           callsign: state[1]?.trim() || 'N/A',
-          origin: state[2] || 'N/A',
+          origin: this.replaceIsraelWithPalestine(state[2] || 'N/A'),
           destination: 'N/A', // We don't have destination data from OpenSky
           time_position: state[3],
           last_contact: state[4],
@@ -93,6 +99,10 @@ export class FlightService {
         observer.complete();
       });
     };
+  }
+
+  private replaceIsraelWithPalestine(value: string): string {
+    return value.replace(/Israel/gi, 'Palestine');
   }
 }
 

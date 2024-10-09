@@ -1,7 +1,12 @@
-import { NgModule } from '@angular/core';
+import { NgModule, isDevMode } from '@angular/core';
 import { BrowserModule, provideClientHydration } from '@angular/platform-browser';
 import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
+import { EffectsModule } from '@ngrx/effects';
+import { StoreDevtoolsModule } from '@ngrx/store-devtools';
+import { environment } from '../environments/enviroments';
+import { flightReducer } from './store/flight/flight.reducer';
+import { FlightEffects } from './store/flight/flight.effects';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -10,6 +15,7 @@ import { FlightMapComponent } from './components/flight-map/flight-map.component
 import { FlightListComponent } from './components/flight-list/flight-list.component';
 import { FlightDetailsComponent } from './components/flight-details/flight-details.component';
 import { SearchBarComponent } from './components/search-bar/search-bar.component';
+import { StoreModule } from '@ngrx/store';
 
 @NgModule({
   declarations: [
@@ -24,7 +30,13 @@ import { SearchBarComponent } from './components/search-bar/search-bar.component
     AppRoutingModule,
     NgbModule,
     HttpClientModule,
-    FormsModule
+    FormsModule,
+    StoreModule.forRoot({ flight: flightReducer }),
+    StoreDevtoolsModule.instrument({ 
+      maxAge: 25,
+      logOnly: environment.production,
+       }),
+    EffectsModule.forRoot([FlightEffects])
   ],
   providers: [
     provideClientHydration()
