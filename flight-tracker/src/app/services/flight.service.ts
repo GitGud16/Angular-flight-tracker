@@ -33,7 +33,7 @@ export interface Flight {
 export class FlightService {
   private openSkyUrl = `https://opensky-network.org/api/states/all`;
   private username = 'Holygeek'
-  private pass = '1116826411a'
+  private pass = ''//your password, through enviroment variables
   // private aviationStackUrl = 'http://api.aviationstack.com/v1/flights';
   // private aviationStackKey = '28d05c126fba4c9e0132f675972a408a';
 
