@@ -1,0 +1,226 @@
+/* You can add global styles to this file, and also import other style files */
+
+/* Importing Bootstrap SCSS file. */
+@import 'bootstrap/scss/bootstrap';
+
+:root {
+  --primary-color: #e0e0e0;   /* 60% */
+  --secondary-color: #4a4a4a; /* 30% */
+  --accent-color: #168ee2;    /* 10% */
+  --text-color: #4a4a4a;
+  --text-color-inverse: #e0e0e0;
+  --table-bg: #ffffff;
+  --table-stripe-bg: #f8f9fa;
+  --table-border-color: #dee2e6;
+
+
+  --btn-primary-bg: #168ee2;
+  --btn-primary-border: #168ee2;
+  --btn-primary-color: #ffffff;
+}
+
+body {
+  background-color: var(--primary-color);
+  color: var(--text-color);
+  font-family: Arial, sans-serif;
+}
+
+.navbar {
+  background-color: var(--secondary-color);
+  color: var(--text-color-inverse);
+}
+
+.navbar-brand, .nav-link {
+  color: var(--text-color-inverse) !important;
+}
+
+.nav-link.active {
+  color: var(--accent-color) !important;
+  font-weight: bold;
+}
+
+.btn-primary {
+  background-color: var(--btn-primary-bg);
+  border-color: var(--btn-primary-border);
+  color: var(--btn-primary-color);
+}
+
+
+.card {
+  background-color: var(--primary-color);
+  color: var(--text-color);
+  border-color: var(--secondary-color);
+}
+
+.form-control {
+  background-color: var(--primary-color);
+  color: var(--text-color);
+  border-color: var(--secondary-color);
+}
+
+body.dark-theme {
+  --primary-color: #4a4a4a;
+  --secondary-color: #e0e0e0;
+  --text-color: #e0e0e0;
+  --text-color-inverse: #4a4a4a;
+  --table-bg: #2c3e50;
+  --table-stripe-bg: #34495e;
+  --table-border-color: #7f8c8d;
+
+  .navbar {
+    background-color: var(--secondary-color);
+    color: var(--text-color-inverse);
+  }
+
+  .navbar-brand, .nav-link {
+    color: var(--text-color-inverse) !important;
+  }
+
+  .card {
+    background-color: var(--secondary-color);
+    color: var(--text-color-inverse);
+    border-color: var(--primary-color);
+  }
+
+  .form-control {
+    background-color: var(--secondary-color);
+    color: var(--text-color-inverse);
+    border-color: var(--primary-color);
+  }
+
+  /* Table styles for dark mode */
+  .table {
+    background-color: var(--table-bg) ;
+    color: var(--text-color);
+  }
+
+  .table-striped > tbody > tr:nth-of-type(odd) {
+    background-color: var(--table-stripe-bg);
+  }
+//   .table-striped
+
+.table-striped>tbody>tr:nth-child(odd)>td,
+tr.found{
+    background-color: var(--table-bg);
+    color: var(--secondary-color);
+}
+
+.table-striped>tbody>tr:nth-child(even)>td,
+tr.found{
+    background-color: var(--table-stripe-bg);
+    color: var(--secondary-color);
+}
+
+.table th{
+    background-color: var(--table-stripe-bg);
+    color: var(--secondary-color);
+}
+
+  .table th, .table td {
+    border-color: var(--table-border-color);
+  }
+
+  .navbar-toggler {
+    border-color: var(--text-color-inverse);
+  }
+
+  .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%2874, 74, 74, 1%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+  }
+}
+
+/* Custom toggle switch */
+.theme-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px; /* Reduced from 60px */
+  height: 28px; /* Reduced from 34px */
+}
+
+.theme-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--primary-color);
+  transition: .4s;
+  border-radius: 28px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "☀️"; /* Sun emoji */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px; /* Reduced from 26px */
+  width: 22px; /* Reduced from 26px */
+  left: 3px; /* Adjusted from 4px */
+  bottom: 3px; /* Adjusted from 4px */
+  background-color: var(--accent-color);
+  transition: .4s;
+  border-radius: 50%;
+  font-size: 14px; /* Adjust as needed */
+}
+
+// input:checked + .slider {
+//   background-color: var(--primary-color)
+// }
+
+input:checked + .slider:before {
+  transform: translateX(22px); /* Adjusted from 26px */
+  content: "🌙"; /* Moon emoji */
+}
+
+/* Table styles for light mode */
+.table {
+  background-color: var(--primary-color);
+  color: var(--text-color);
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.table th, .table td {
+  border-color: var(--secondary-color);
+}
+
+/* Navbar toggler (burger menu) styling */
+.navbar-toggler {
+  border: 1px solid var(--text-color-inverse);
+  padding: 4px 8px;
+  
+  &:focus {
+    box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25);
+  }
+}
+
+.navbar-toggler-icon {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28224, 224, 224, 1%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+/* Responsive navbar adjustments */
+@media (max-width: 991.98px) {
+  .navbar-nav {
+    text-align: center;
+    padding: 1rem 0;
+  }
+  
+  .nav-link {
+    padding: 0.5rem 1rem !important;
+    margin: 0 !important;
+  }
+  
+  .theme-switch {
+    margin: 1rem auto 0 auto !important;
+  }
+}

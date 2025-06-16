@@ -1,0 +1,57 @@
+<div *ngIf="flight$ | async as flight; else loading">
+  <h2>Flight Details: {{flight.callsign}}</h2>
+  <div class="card">
+    <div class="card-body">
+      <h5 class="card-title">Basic Information</h5>
+      <p><strong>ID:</strong> {{flight.id}}</p>
+      <p><strong>Callsign:</strong> {{flight.callsign}}</p>
+      <p><strong>Origin:</strong> {{flight.origin}}</p>
+      <p><strong>Destination:</strong> {{flight.destination}}</p>
+      <p><strong>Category:</strong> {{flight.category || 'N/A'}}</p>
+    </div>
+  </div>
+
+  <div class="card mt-3">
+    <div class="card-body">
+      <h5 class="card-title">Position Information</h5>
+      <p><strong>Latitude:</strong> {{flight.latitude | number:'1.6-6'}}°</p>
+      <p><strong>Longitude:</strong> {{flight.longitude | number:'1.6-6'}}°</p>
+      <p><strong>Altitude:</strong> {{flight.altitude | number:'1.0-0'}} m</p>
+      <p><strong>Barometric Altitude:</strong> {{flight.baro_altitude | number:'1.0-0'}} m</p>
+      <p><strong>On Ground:</strong> {{flight.on_ground ? 'Yes' : 'No'}}</p>
+    </div>
+  </div>
+
+  <div class="card mt-3">
+    <div class="card-body">
+      <h5 class="card-title">Movement Information</h5>
+      <p><strong>Velocity:</strong> {{flight.velocity | number:'1.1-1'}} m/s</p>
+      <p><strong>True Track:</strong> {{flight.true_track | number:'1.1-1'}}°</p>
+      <p><strong>Vertical Rate:</strong> {{flight.vertical_rate | number:'1.1-1'}} m/s</p>
+    </div>
+  </div>
+
+  <div class="card mt-3">
+    <div class="card-body">
+      <h5 class="card-title">Technical Information</h5>
+      <p><strong>Squawk:</strong> {{flight.squawk || 'N/A'}}</p>
+      <p><strong>SPI:</strong> {{flight.spi ? 'Yes' : 'No'}}</p>
+      <p><strong>Position Source:</strong> {{getPositionSource(flight.position_source)}}</p>
+      <p><strong>Sensors:</strong> {{flight.sensors ? flight.sensors.join(', ') : 'N/A'}}</p>
+    </div>
+  </div>
+
+  <div class="card mt-3">
+    <div class="card-body">
+      <h5 class="card-title">Time Information</h5>
+      <p><strong>Last Contact:</strong> {{flight.last_contact * 1000 | date:'medium'}}</p>
+      <p><strong>Time Position:</strong> {{flight.time_position  ? (flight.time_position * 1000 | date:'medium') : 'N/A'}}</p>
+    </div>
+  </div>
+
+  <button class="btn btn-primary mt-3" (click)="goBack()">Back to Flight List</button>
+</div>
+<ng-template #loading>
+  <p>Loading flight details...</p>
+</ng-template>
+

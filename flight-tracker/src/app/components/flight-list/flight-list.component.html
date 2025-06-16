@@ -1,0 +1,148 @@
+<h2>Flight List</h2>
+
+<!-- Region Filter -->
+<div class="form-group mb-3">
+  <label for="regionSelect">Filter by Region:</label>
+  <div class="d-flex gap-2 align-items-end region-filter-container">
+    <div class="flex-grow-1">
+      <select id="regionSelect" class="form-control" [(ngModel)]="selectedRegion" (change)="onRegionChange()">
+        <option *ngFor="let region of regions" [value]="region">{{region}}</option>
+      </select>
+    </div>
+    <div>
+      <button 
+        class="btn btn-success btn-reveal-all" 
+        (click)="onRevealAllFlights()" 
+        [disabled]="(loading$ | async) || (flightsWithCoordinatesCount$ | async) === 0"
+        title="Toggle visibility of all flights with valid coordinates on the map">
+        <i class="fas fa-eye me-1" *ngIf="!(areAllFlightsVisible$ | async)"></i>
+        <i class="fas fa-eye-slash me-1" *ngIf="(areAllFlightsVisible$ | async)"></i>
+        {{ (areAllFlightsVisible$ | async) ? 'Hide All from Map' : 'Show All on Map' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Loading Indicator -->
+<div *ngIf="loading$ | async" class="text-center mb-3">
+  <div class="spinner-border" role="status">
+    <span class="visually-hidden">Loading flights...</span>
+  </div>
+  <p class="mt-2">Loading flights for {{ selectedRegion }}...</p>
+</div>
+
+<!-- Flight Statistics -->
+<div class="mb-3" *ngIf="pagination$ | async as pagination">
+  <div class="alert alert-info">
+    <strong>{{ selectedRegion }}</strong>: 
+    Showing {{ (flights$ | async)?.length || 0 }} flights 
+    (Page {{ pagination.currentPage }} of {{ pagination.totalPages }}) - 
+    Total: {{ pagination.totalFlights }} flights in region
+    <span *ngIf="(flightsWithCoordinatesCount$ | async) as coordCount" class="ms-2">
+      | <i class="fas fa-map-pin text-primary"></i> {{ coordCount }} with coordinates
+    </span>
+    <span *ngIf="(visibleFlightsCount$ | async) as visibleCount" class="ms-2">
+      | <i class="fas fa-map-marker-alt text-success"></i> {{ visibleCount }} on map
+    </span>
+  </div>
+</div>
+
+<!-- Flights Table -->
+<div class="table-responsive" *ngIf="!(loading$ | async)">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Callsign</th>
+                <th>Origin</th>
+                <th>Altitude</th>
+                <th>Speed</th>
+                <th>Latitude</th>
+                <th>Longitude</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+      <tr *ngFor="let flight of flights$ | async; trackBy: trackByFlightId">
+                <td>{{ flight.callsign }}</td>
+                <td title="{{ flight.origin }}">
+                    {{ flight.origin | slice:0:15 }}{{ flight.origin.length > 15 ? '...' : '' }}
+                </td>
+                <td>{{ flight.altitude | number:'1.0-0' }} m</td>
+                <td>{{ flight.velocity | number:'1.0-0' }} m/s</td>
+                <td>{{ flight.latitude | number:'1.6-6' }}°</td>
+                <td>{{ flight.longitude | number:'1.6-6' }}°</td>
+                <td>
+                    <a [routerLink]="['/details', flight.id]" class="btn btn-primary btn-sm me-2">Details</a>
+                    <button 
+                        class="btn btn-secondary btn-sm" 
+                        (click)="onRevealClick(flight)"
+                        [disabled]="!hasValidCoordinates(flight)"
+                        [title]="hasValidCoordinates(flight) ? 'Toggle flight visibility on map' : 'Flight has no coordinates'">
+                     {{ (isFlightVisible$(flight.id) | async) ? 'Hide' : 'Reveal' }}
+                    </button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- No Flights Message -->
+<div *ngIf="!(loading$ | async) && (flights$ | async)?.length === 0" class="alert alert-warning">
+  <h4>No flights found</h4>
+  <p>No flights are currently available for {{ selectedRegion }}. Try selecting a different region.</p>
+</div>
+
+<!-- Pagination Controls -->
+<nav aria-label="Flight pagination" *ngIf="pagination$ | async as pagination">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <!-- Page Info -->
+    <div>
+      <small class="text-muted">
+        Page {{ pagination.currentPage }} of {{ pagination.totalPages }} 
+        ({{ pagination.totalFlights }} total flights)
+      </small>
+    </div>
+    
+    <!-- Pagination Buttons -->
+    <ul class="pagination mb-0">
+      <!-- Previous Button -->
+      <li class="page-item" [class.disabled]="!pagination.hasPrevPage">
+        <button class="page-link" (click)="onPrevPage()" [disabled]="!pagination.hasPrevPage">
+          Previous
+        </button>
+      </li>
+      
+      <!-- First Page -->
+      <li class="page-item" *ngIf="pagination.currentPage > 3">
+        <button class="page-link" (click)="onPageChange(1)">1</button>
+      </li>
+      <li class="page-item disabled" *ngIf="pagination.currentPage > 4">
+        <span class="page-link">...</span>
+      </li>
+      
+      <!-- Page Numbers -->
+      <li class="page-item" 
+          *ngFor="let page of getPageNumbers(pagination.totalPages)" 
+          [class.active]="page === pagination.currentPage">
+        <button class="page-link" (click)="onPageChange(page)">{{ page }}</button>
+      </li>
+      
+      <!-- Last Page -->
+      <li class="page-item disabled" *ngIf="pagination.currentPage < pagination.totalPages - 3">
+        <span class="page-link">...</span>
+      </li>
+      <li class="page-item" *ngIf="pagination.currentPage < pagination.totalPages - 2">
+        <button class="page-link" (click)="onPageChange(pagination.totalPages)">
+          {{ pagination.totalPages }}
+        </button>
+      </li>
+      
+      <!-- Next Button -->
+      <li class="page-item" [class.disabled]="!pagination.hasNextPage">
+        <button class="page-link" (click)="onNextPage()" [disabled]="!pagination.hasNextPage">
+          Next
+        </button>
+      </li>
+    </ul>
+  </div>
+</nav>

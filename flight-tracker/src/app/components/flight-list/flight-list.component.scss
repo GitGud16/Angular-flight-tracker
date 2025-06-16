@@ -1,0 +1,55 @@
+.table-responsive {
+  overflow-x: auto;
+}
+
+.table {
+  min-width: 600px; // Adjust this value as needed
+}
+
+td {
+  max-width: 150px; // Adjust this value as needed
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// Reveal All Flights Button Styling
+.btn-reveal-all {
+  white-space: nowrap;
+  min-width: 160px;
+  transition: all 0.3s ease;
+  
+  &:disabled {
+    opacity: 0.6;
+  }
+  
+  .fas {
+    font-size: 0.9em;
+  }
+  
+  // Different colors for show/hide states
+  &:not(:disabled) {
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+  }
+}
+
+// Individual flight reveal button styling
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+// Region Filter Layout
+.region-filter-container {
+  .form-control {
+    border-radius: 0.375rem 0 0 0.375rem;
+  }
+  
+  .btn {
+    border-radius: 0 0.375rem 0.375rem 0;
+    border-left: 0;
+  }
+}

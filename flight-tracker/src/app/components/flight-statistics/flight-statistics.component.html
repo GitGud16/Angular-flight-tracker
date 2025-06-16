@@ -1,0 +1,279 @@
+<div class="statistics-dashboard">
+  <h2>📊 Flight Statistics Dashboard</h2>
+  
+  <!-- Loading State -->
+  <div *ngIf="loading$ | async" class="text-center mb-4">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading statistics...</span>
+    </div>
+    <p class="mt-2">Calculating flight statistics...</p>
+  </div>
+
+  <!-- Statistics Content -->
+  <div *ngIf="!(loading$ | async) && (statistics$ | async) as stats" class="statistics-content">
+    
+    <!-- Header Info -->
+    <div class="alert alert-info mb-4">
+      <h4 class="alert-heading">
+        <i class="fas fa-globe"></i> 
+        {{ currentRegion$ | async }} Region Analysis
+      </h4>
+      <p class="mb-0">
+        Real-time analysis of <strong>{{ stats.totalFlights }}</strong> flights in the selected region.
+        Data refreshed every 5 minutes.
+      </p>
+    </div>
+
+    <!-- Key Metrics Cards -->
+    <div class="row mb-4">
+      <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card bg-primary text-white">
+          <div class="card-body text-center">
+            <i class="fas fa-plane fa-2x mb-2"></i>
+            <h3 class="card-title">{{ stats.totalFlights }}</h3>
+            <p class="card-text">Total Flights</p>
+            <small>In {{ currentRegion$ | async }}</small>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card bg-success text-white">
+          <div class="card-body text-center">
+            <i class="fas fa-plane-departure fa-2x mb-2"></i>
+            <h3 class="card-title">{{ stats.flyingFlights }}</h3>
+            <p class="card-text">Flying</p>
+            <small>{{ getPercentage(stats.flyingFlights, stats.totalFlights) }}%</small>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card bg-warning text-white">
+          <div class="card-body text-center">
+            <i class="fas fa-plane-arrival fa-2x mb-2"></i>
+            <h3 class="card-title">{{ stats.groundedFlights }}</h3>
+            <p class="card-text">On Ground</p>
+            <small>{{ getPercentage(stats.groundedFlights, stats.totalFlights) }}%</small>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card bg-info text-white">
+          <div class="card-body text-center">
+            <i class="fas fa-tachometer-alt fa-2x mb-2"></i>
+            <h3 class="card-title">{{ convertToKmh(stats.averageSpeed) }}</h3>
+            <p class="card-text">Avg Speed (km/h)</p>
+            <small>{{ stats.averageSpeed }} m/s</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detailed Statistics -->
+    <div class="row">
+      
+      <!-- Altitude Analysis -->
+      <div class="col-lg-6 mb-4">
+        <div class="card">
+          <div class="card-header">
+            <h5><i class="fas fa-mountain"></i> Altitude Distribution</h5>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <strong>Highest Altitude:</strong> 
+              {{ convertToFeet(stats.highestAltitude) | number }} ft 
+              ({{ stats.highestAltitude | number }} m)
+            </div>
+            <div class="mb-3">
+              <strong>Average Altitude:</strong> 
+              {{ convertToFeet(stats.averageAltitude) | number }} ft 
+              ({{ stats.averageAltitude | number }} m)
+            </div>
+            
+            <div *ngFor="let range of getObjectKeys(stats.altitudeRanges)" class="mb-2">
+              <div class="d-flex justify-content-between align-items-center">
+                <span>{{ range }}</span>
+                <span class="badge bg-secondary">{{ stats.altitudeRanges[range] }}</span>
+              </div>
+              <div class="progress" style="height: 8px;">
+                <div class="progress-bar" 
+                     [style.width.%]="getPercentage(stats.altitudeRanges[range], stats.totalFlights)"
+                     [attr.aria-valuenow]="getPercentage(stats.altitudeRanges[range], stats.totalFlights)">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Speed Analysis -->
+      <div class="col-lg-6 mb-4">
+        <div class="card">
+          <div class="card-header">
+            <h5><i class="fas fa-tachometer-alt"></i> Speed Distribution</h5>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <strong>Fastest Speed:</strong> 
+              {{ convertToKmh(stats.fastestSpeed) }} km/h 
+              ({{ stats.fastestSpeed }} m/s)
+            </div>
+            <div class="mb-3">
+              <strong>Average Speed:</strong> 
+              {{ convertToKmh(stats.averageSpeed) }} km/h 
+              ({{ stats.averageSpeed }} m/s)
+            </div>
+            
+            <div *ngFor="let range of getObjectKeys(stats.speedRanges)" class="mb-2">
+              <div class="d-flex justify-content-between align-items-center">
+                <span>{{ range }}</span>
+                <span class="badge bg-secondary">{{ stats.speedRanges[range] }}</span>
+              </div>
+              <div class="progress" style="height: 8px;">
+                <div class="progress-bar bg-info" 
+                     [style.width.%]="getPercentage(stats.speedRanges[range], stats.totalFlights)"
+                     [attr.aria-valuenow]="getPercentage(stats.speedRanges[range], stats.totalFlights)">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Key Insights -->
+      <div class="col-lg-6 mb-4">
+        <div class="card">
+          <div class="card-header">
+            <h5><i class="fas fa-lightbulb"></i> Key Insights</h5>
+          </div>
+          <div class="card-body">
+            <div class="row mb-3">
+              <div class="col-6">
+                <strong>Avg Altitude:</strong><br>
+                <span class="text-primary">{{ convertToFeet(stats.averageAltitude) | number }} ft</span>
+              </div>
+              <div class="col-6">
+                <strong>Max Altitude:</strong><br>
+                <span class="text-info">{{ convertToFeet(stats.highestAltitude) | number }} ft</span>
+              </div>
+            </div>
+            
+            <div class="row mb-3">
+              <div class="col-6">
+                <strong>Avg Speed:</strong><br>
+                <span class="text-success">{{ convertToKmh(stats.averageSpeed) }} km/h</span>
+              </div>
+              <div class="col-6">
+                <strong>Max Speed:</strong><br>
+                <span class="text-warning">{{ convertToKmh(stats.fastestSpeed) }} km/h</span>
+              </div>
+            </div>
+            
+            <div class="mb-2">
+              <div class="d-flex justify-content-between align-items-center">
+                <span>Flying ({{ getPercentage(stats.flyingFlights, stats.totalFlights) }}%)</span>
+                <span class="badge bg-success">{{ stats.flyingFlights }}</span>
+              </div>
+              <div class="progress" style="height: 8px;">
+                <div class="progress-bar bg-success" 
+                     [style.width.%]="getPercentage(stats.flyingFlights, stats.totalFlights)"
+                     [attr.aria-valuenow]="getPercentage(stats.flyingFlights, stats.totalFlights)">
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-2">
+              <div class="d-flex justify-content-between align-items-center">
+                <span>On Ground ({{ getPercentage(stats.groundedFlights, stats.totalFlights) }}%)</span>
+                <span class="badge bg-warning">{{ stats.groundedFlights }}</span>
+              </div>
+              <div class="progress" style="height: 8px;">
+                <div class="progress-bar bg-warning" 
+                     [style.width.%]="getPercentage(stats.groundedFlights, stats.totalFlights)"
+                     [attr.aria-valuenow]="getPercentage(stats.groundedFlights, stats.totalFlights)">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Flight Directions -->
+      <div class="col-lg-6 mb-4">
+        <div class="card">
+          <div class="card-header">
+            <h5><i class="fas fa-compass"></i> Flight Directions</h5>
+          </div>
+          <div class="card-body">
+            <div *ngFor="let direction of getObjectKeys(stats.flightDirections)" class="mb-2">
+              <div class="d-flex justify-content-between align-items-center">
+                <span>{{ direction }}</span>
+                <span class="badge bg-success">{{ stats.flightDirections[direction] }}</span>
+              </div>
+              <div class="progress" style="height: 8px;">
+                <div class="progress-bar bg-success" 
+                     [style.width.%]="getPercentage(stats.flightDirections[direction], stats.totalFlights)"
+                     [attr.aria-valuenow]="getPercentage(stats.flightDirections[direction], stats.totalFlights)">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Additional Insights -->
+    <div class="row">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header">
+            <h5><i class="fas fa-chart-bar"></i> Flight Summary</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-4">
+                <div class="insight-item">
+                  <h6>🛫 Flight Activity</h6>
+                  <p>
+                    <strong>{{ getPercentage(stats.flyingFlights, stats.totalFlights) }}%</strong> 
+                    of flights are currently airborne
+                  </p>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="insight-item">
+                  <h6>⛰️ Altitude Preference</h6>
+                  <p>
+                    Most flights cruise at 
+                    <strong>{{ stats.averageAltitude | number }}</strong> meters altitude
+                  </p>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="insight-item">
+                  <h6>🧭 Traffic Flow</h6>
+                  <p>
+                    Primary flight direction: 
+                    <strong>{{ getMostCommonDirection(stats.flightDirections) }}</strong>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!(loading$ | async) && (statistics$ | async)?.totalFlights === 0" class="text-center py-5">
+    <i class="fas fa-plane-slash fa-3x text-muted mb-3"></i>
+    <h4>No Flight Data Available</h4>
+    <p class="text-muted">No flights found in the selected region. Try selecting a different region.</p>
+  </div>
+
+</div> 

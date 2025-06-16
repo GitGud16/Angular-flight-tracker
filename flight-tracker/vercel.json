@@ -1,0 +1,14 @@
+{
+    "version": 2,
+    "buildCommand": "ng build --configuration production",
+    "outputDirectory": "dist/flight-tracker/browser",
+    "devCommand": "ng serve --port $PORT",
+    "installCommand": "npm install",
+    "framework": "angular",
+    "rewrites": [
+      {
+        "source": "/(.*)",
+        "destination": "/index.html"
+      }
+    ]
+  }
