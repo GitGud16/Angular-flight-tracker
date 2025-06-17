@@ -21,6 +21,18 @@ const OPENSKY_CONFIG = {
   clientSecret: process.env.OPENSKY_CLIENT_SECRET
 };
 
+// Log configuration for debugging
+console.log('🔧 OpenSky Configuration:');
+console.log(`   Token URL: ${OPENSKY_CONFIG.tokenUrl}`);
+console.log(`   API URL: ${OPENSKY_CONFIG.apiUrl}`);
+console.log(`   Client ID: ${OPENSKY_CONFIG.clientId ? '[SET]' : '[NOT SET]'}`);
+console.log(`   Client Secret: ${OPENSKY_CONFIG.clientSecret ? '[SET]' : '[NOT SET]'}`);
+
+// Validate configuration
+if (!OPENSKY_CONFIG.clientId || !OPENSKY_CONFIG.clientSecret) {
+  console.warn('⚠️ OpenSky credentials not found. Will use unauthenticated API (limited rate)');
+}
+
 // Cache configuration from environment variables
 const CACHE_CONFIG = {
   tokenBufferMinutes: parseInt(process.env.TOKEN_CACHE_BUFFER_MINUTES) || 5,
@@ -53,30 +65,55 @@ async function getAccessToken() {
   body.append('client_id', OPENSKY_CONFIG.clientId);
   body.append('client_secret', OPENSKY_CONFIG.clientSecret);
 
-  try {
-    const response = await fetch(OPENSKY_CONFIG.tokenUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: body
-    });
+  // Retry logic with exponential backoff
+  const maxRetries = 3;
+  let retryCount = 0;
+  
+  while (retryCount < maxRetries) {
+    try {
+      console.log(`🔄 Attempt ${retryCount + 1}/${maxRetries} to get access token...`);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+      
+      const response = await fetch(OPENSKY_CONFIG.tokenUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: body,
+        signal: controller.signal
+      });
 
-    if (!response.ok) {
-      throw new Error(`Token request failed: ${response.status} ${response.statusText}`);
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`Token request failed: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      const bufferMs = CACHE_CONFIG.tokenBufferMinutes * 60 * 1000;
+      tokenCache.token = data.access_token;
+      tokenCache.expiration = Date.now() + (data.expires_in * 1000) - bufferMs;
+      
+      console.log('✅ Token received and cached');
+      return data.access_token;
+      
+    } catch (error) {
+      retryCount++;
+      console.error(`❌ Token request attempt ${retryCount} failed:`, error.message);
+      
+      if (retryCount >= maxRetries) {
+        console.error('❌ All token request attempts failed');
+        throw new Error(`Failed to get access token after ${maxRetries} attempts: ${error.message}`);
+      }
+      
+      // Exponential backoff: wait 2^retryCount seconds
+      const waitTime = Math.pow(2, retryCount) * 1000;
+      console.log(`⏳ Waiting ${waitTime}ms before retry...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
     }
-
-    const data = await response.json();
-    
-    const bufferMs = CACHE_CONFIG.tokenBufferMinutes * 60 * 1000;
-    tokenCache.token = data.access_token;
-    tokenCache.expiration = Date.now() + (data.expires_in * 1000) - bufferMs;
-    
-    console.log('✅ Token received and cached');
-    return data.access_token;
-  } catch (error) {
-    console.error('❌ Token request failed:', error);
-    throw error;
   }
 }
 
@@ -90,13 +127,29 @@ async function getFlightsData() {
   console.log('🛩️ Fetching fresh flights data...');
   
   try {
-    const token = await getAccessToken();
+    // Try authenticated API first
+    let response;
+    let token = null;
     
-    const response = await fetch(OPENSKY_CONFIG.apiUrl, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
+    try {
+      token = await getAccessToken();
+      console.log('🔐 Using authenticated API request...');
+      
+      response = await fetch(OPENSKY_CONFIG.apiUrl, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        timeout: 10000 // 10 second timeout
+      });
+    } catch (authError) {
+      console.warn('⚠️ Authentication failed, falling back to unauthenticated API:', authError.message);
+      
+      // Fallback to unauthenticated API
+      console.log('🌐 Using unauthenticated API request...');
+      response = await fetch(OPENSKY_CONFIG.apiUrl, {
+        timeout: 10000 // 10 second timeout
+      });
+    }
 
     if (!response.ok) {
       throw new Error(`Flights request failed: ${response.status} ${response.statusText}`);
@@ -130,7 +183,7 @@ async function getFlightsData() {
     flightsCache.data = flights;
     flightsCache.expiration = Date.now() + cacheMs;
     
-    console.log(`✅ Fetched and cached ${flights.length} flights`);
+    console.log(`✅ Fetched and cached ${flights.length} flights${token ? ' (authenticated)' : ' (unauthenticated)'}`);
     return flights;
   } catch (error) {
     console.error('❌ Flights request failed:', error);
@@ -380,6 +433,95 @@ app.get('/api/flights/:id', async (req, res) => {
       error: error.message
     });
   }
+});
+
+app.get('/api/debug/opensky', async (req, res) => {
+  const diagnostics = {
+    timestamp: new Date().toISOString(),
+    config: {
+      tokenUrl: OPENSKY_CONFIG.tokenUrl,
+      apiUrl: OPENSKY_CONFIG.apiUrl,
+      hasCredentials: !!(OPENSKY_CONFIG.clientId && OPENSKY_CONFIG.clientSecret)
+    },
+    tests: {}
+  };
+
+  // Test 1: Check API URL connectivity
+  try {
+    console.log('🔍 Testing API URL connectivity...');
+    const response = await fetch(OPENSKY_CONFIG.apiUrl, {
+      method: 'HEAD',
+      timeout: 5000
+    });
+    diagnostics.tests.apiUrlConnectivity = {
+      success: true,
+      status: response.status,
+      message: 'API URL is reachable'
+    };
+  } catch (error) {
+    diagnostics.tests.apiUrlConnectivity = {
+      success: false,
+      error: error.message
+    };
+  }
+
+  // Test 2: Try unauthenticated API call
+  try {
+    console.log('🔍 Testing unauthenticated API call...');
+    const response = await fetch(OPENSKY_CONFIG.apiUrl, {
+      timeout: 5000
+    });
+    if (response.ok) {
+      const data = await response.json();
+      diagnostics.tests.unauthenticatedApi = {
+        success: true,
+        message: `Received ${data.states ? data.states.length : 0} flights`,
+        rateLimit: response.headers.get('x-rate-limit-remaining')
+      };
+    } else {
+      diagnostics.tests.unauthenticatedApi = {
+        success: false,
+        status: response.status,
+        statusText: response.statusText
+      };
+    }
+  } catch (error) {
+    diagnostics.tests.unauthenticatedApi = {
+      success: false,
+      error: error.message
+    };
+  }
+
+  // Test 3: Check token URL connectivity (if credentials exist)
+  if (OPENSKY_CONFIG.clientId && OPENSKY_CONFIG.clientSecret) {
+    try {
+      console.log('🔍 Testing token URL connectivity...');
+      const response = await fetch(OPENSKY_CONFIG.tokenUrl, {
+        method: 'HEAD',
+        timeout: 5000
+      });
+      diagnostics.tests.tokenUrlConnectivity = {
+        success: true,
+        status: response.status,
+        message: 'Token URL is reachable'
+      };
+    } catch (error) {
+      diagnostics.tests.tokenUrlConnectivity = {
+        success: false,
+        error: error.message
+      };
+    }
+  } else {
+    diagnostics.tests.tokenUrlConnectivity = {
+      skipped: true,
+      reason: 'No credentials configured'
+    };
+  }
+
+  res.json({
+    success: true,
+    data: diagnostics
+  });
 });
 
 app.get('/health', (req, res) => {
